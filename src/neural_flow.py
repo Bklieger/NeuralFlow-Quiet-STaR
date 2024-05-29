@@ -24,13 +24,12 @@ import imageio
 import numpy as np
 import torch
 import torch.nn.functional as F
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFont
 from transformers import MistralForCausalLM, AutoTokenizer, AutoConfig
 
 device_0 = "cuda:0"
 model_folder = "/notebooks/quietstar-8-ahead"
 image_output_folder = "/notebooks/"
-
 
 def main():
     config = AutoConfig.from_pretrained(model_folder)
@@ -53,19 +52,12 @@ def main():
     # probe_results.
     probe_results = []
     generated_tokens = []
-    first_probe = None
-    second_probe = None
-    third_probe = None
+    top_tokens_list = []
     
-    for _ in range(3):  # Generate 5 tokens sequentially as an example
+    for _ in range(3):  # Generate 3 tokens sequentially as an example
         probe_result, top_tokens = compute_model_output(mistral, tokenizer, probe_string)
-        if first_probe == None:
-            first_probe = probe_result
-        elif second_probe == None:
-            second_probe = probe_result
-        elif third_probe == None:
-            third_probe = probe_result
         probe_results.append(probe_result)
+        top_tokens_list.append(top_tokens)
         print("Top tokens:", top_tokens)
         next_token = select_top_token(top_tokens)
         generated_tokens.append(next_token)
@@ -73,7 +65,7 @@ def main():
 
     print("Generated tokens:", generated_tokens)
     
-    plot_embedding_flow([first_probe, second_probe, third_probe])
+    plot_embedding_flow(probe_results, top_tokens_list)
 
 
 def compute_model_output(base_model, tokenizer, ground_truth):
@@ -146,7 +138,7 @@ def generate_filename(prefix, extension):
     return filename
 
 
-def plot_layers(all_words, title, file_path, normalize=True):
+def plot_layers(all_words, title, file_path, top_tokens_list, normalize=True):
     sequence_length = all_words[0].shape[1]
     paths = []
 
@@ -187,11 +179,29 @@ def plot_layers(all_words, title, file_path, normalize=True):
         array = (color_tensor.cpu().numpy() * 255).astype(np.uint8)
         image = Image.fromarray(array, 'RGB')
 
+        # Resize canvas to add space for text
+        new_height = height + 60
+        new_image = Image.new("RGB", (image.width, new_height), (0, 0, 0))
+        new_image.paste(image, (0, 0))
+
+        # Draw token text on the image
+        draw = ImageDraw.Draw(new_image)
+        try:
+            font = ImageFont.truetype("arial.ttf", 14)
+        except IOError:
+            font = ImageFont.load_default()
+        
+        # Prepare the text with tokens and probabilities
+        token_text = "\n".join([f"{repr(token)}: {prob:.5f}" for token, prob in top_tokens_list[i]])
+        
+        text_position = (10, height + 5)
+        draw.text(text_position, token_text, fill="white", font=font)
+
         # Save the image
         tmp_name = "raw_values_tmp" + str(i)
         filename = title + "_" + generate_filename(tmp_name + str(i), "png")
         full_path = os.path.join(file_path, filename)
-        image.save(full_path)
+        new_image.save(full_path)
 
         paths.append(full_path)
 
@@ -207,11 +217,10 @@ def plot_layers(all_words, title, file_path, normalize=True):
     for filename in paths:
         os.remove(filename)
 
-    # open_image(gif_path)
     return gif_path
 
 
-def plot_embedding_flow(probe_results):
+def plot_embedding_flow(probe_results, top_tokens_list):
     layer_count = len(probe_results[0])
     layer_embeddings = []
     for l_index in range(layer_count):
@@ -223,7 +232,7 @@ def plot_embedding_flow(probe_results):
         layer_embeddings.append(layer_embedding)
 
     # Plot current progress
-    path = plot_layers(layer_embeddings, "probe_results", image_output_folder)
+    path = plot_layers(layer_embeddings, "probe_results", image_output_folder, top_tokens_list)
     return path
 
 
