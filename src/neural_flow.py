@@ -45,7 +45,7 @@ def main():
         model_folder, trust_remote_code=True)
 
     # The last token of this string will be used to generate the image
-    probe_string = "1 + 1 = "
+    probe_string = "1 + 1 ="
 
     # Probe results is an array so that you can plot the changes to the
     # output over time. The plot_embedding_flow will generate an animated gif.
@@ -53,13 +53,27 @@ def main():
     # probe_results.
     probe_results = []
     generated_tokens = []
-    probe_result, generated_token = compute_model_output(mistral, tokenizer, probe_string)
-    probe_results.append(probe_result)
-    generated_tokens.append(generated_token)
+    first_probe = None
+    second_probe = None
+    third_probe = None
     
-    print("Generated tokens: ",generated_tokens)
+    for _ in range(3):  # Generate 5 tokens sequentially as an example
+        probe_result, top_tokens = compute_model_output(mistral, tokenizer, probe_string)
+        if first_probe == None:
+            first_probe = probe_result
+        elif second_probe == None:
+            second_probe = probe_result
+        elif third_probe == None:
+            third_probe = probe_result
+        probe_results.append(probe_result)
+        print("Top tokens:", top_tokens)
+        next_token = select_top_token(top_tokens)
+        generated_tokens.append(next_token)
+        probe_string += " " + next_token
 
-    plot_embedding_flow(probe_results)
+    print("Generated tokens:", generated_tokens)
+    
+    plot_embedding_flow([first_probe, second_probe, third_probe])
 
 
 def compute_model_output(base_model, tokenizer, ground_truth):
@@ -89,12 +103,21 @@ def compute_model_output(base_model, tokenizer, ground_truth):
                            output_attentions=True)
             hidden_states = output[0]
             layer_output.append(hidden_states)
-                                
+
         logits = base_model.lm_head(hidden_states)
-        predicted_tokens = torch.argmax(logits, dim=-1)
-        generated_tokens = tokenizer.batch_decode(predicted_tokens[0], skip_special_tokens=True)
-        
-        return layer_output, generated_tokens
+        softmax_logits = torch.softmax(logits, dim=-1)
+        top_probabilities, top_indices = torch.topk(softmax_logits, 5, dim=-1)  # Get top 5 tokens
+
+        top_tokens = [(tokenizer.decode(top_indices[0, -1, i]), top_probabilities[0, -1, i].item())
+                      for i in range(5)]
+
+        return layer_output, top_tokens
+
+
+def select_top_token(top_tokens):
+    # For simplicity, select the token with the highest probability
+    top_tokens.sort(key=lambda x: x[1], reverse=True)
+    return top_tokens[0][0]
 
 
 def vectorized_get_color_rgb(value_tensor, max_value=1.0):
