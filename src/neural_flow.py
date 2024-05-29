@@ -44,7 +44,7 @@ def main():
         model_folder, trust_remote_code=True)
 
     # The last token of this string will be used to generate the image
-    probe_string = "1 + 1 = 2 because"
+    probe_string = "Question: The local firefighters are doing a fill the boot fundraiser. Their goal is to raise $6300. After the first 3 hours, they have raised $2100.  For how many hours do they have to fundraise in total to reach their goal, assuming an equal amount raised in every hour?\n\n Let's think step by step."
 
     # Probe results is an array so that you can plot the changes to the
     # output over time. The plot_embedding_flow will generate an animated gif.
@@ -53,8 +53,9 @@ def main():
     probe_results = []
     generated_tokens = []
     top_tokens_list = []
+    probe_string_list = []
     
-    for _ in range(5):  # Generate 5 tokens sequentially as an example
+    for _ in range(100):  # Generate 100 tokens sequentially as an example
         probe_result, top_tokens = compute_model_output(mistral, tokenizer, probe_string)
         probe_results.append(probe_result)
         top_tokens_list.append(top_tokens)
@@ -63,15 +64,16 @@ def main():
         generated_tokens.append(next_token)
         
         # Fix space token
-        if next_token=="":
+        if next_token == "":
             next_token = " "
-            
+        
         probe_string += next_token
-        print("Current phrase: ",probe_string)
+        probe_string_list.append(probe_string)
+        print("Current phrase: ", probe_string)
 
     print("Generated tokens:", generated_tokens)
     
-    plot_embedding_flow(probe_results, top_tokens_list)
+    plot_embedding_flow(probe_results, top_tokens_list, probe_string_list)
 
 
 def compute_model_output(base_model, tokenizer, ground_truth):
@@ -144,7 +146,7 @@ def generate_filename(prefix, extension):
     return filename
 
 
-def plot_layers(all_words, title, file_path, top_tokens_list, normalize=True):
+def plot_layers(all_words, title, file_path, top_tokens_list, probe_string_list, normalize=True):
     sequence_length = all_words[0].shape[1]
     paths = []
 
@@ -197,11 +199,13 @@ def plot_layers(all_words, title, file_path, top_tokens_list, normalize=True):
         except IOError:
             font = ImageFont.load_default()
         
-        # Prepare the text with tokens and probabilities
+        # Prepare the text with tokens, probabilities, and last 20 characters of probe string
         token_text = "\n".join([f"{repr(token)}: {prob:.5f}" for token, prob in top_tokens_list[i]])
+        context_text = f"Last 20 chars: {repr(probe_string_list[i][-20:])}"
         
-        text_position = (10, height + 5)
+        text_position = (10, height - 60)
         draw.text(text_position, token_text, fill="white", font=font)
+        draw.text((10, height - 120), context_text, fill="white", font=font)
 
         # Save the image
         tmp_name = "raw_values_tmp" + str(i)
@@ -214,7 +218,7 @@ def plot_layers(all_words, title, file_path, top_tokens_list, normalize=True):
     # Create gif from images
     filename = title + "_" + generate_filename("layers", "gif")
     gif_path = os.path.join(file_path, filename)
-    with imageio.get_writer(gif_path, mode='I', fps=15, loop=0) as writer:
+    with imageio.get_writer(gif_path, mode='I', fps=5, loop=0) as writer:
         for filename in paths:
             image = imageio.imread(filename)
             writer.append_data(image)
@@ -226,7 +230,7 @@ def plot_layers(all_words, title, file_path, top_tokens_list, normalize=True):
     return gif_path
 
 
-def plot_embedding_flow(probe_results, top_tokens_list):
+def plot_embedding_flow(probe_results, top_tokens_list, probe_string_list):
     layer_count = len(probe_results[0])
     layer_embeddings = []
     for l_index in range(layer_count):
@@ -238,7 +242,7 @@ def plot_embedding_flow(probe_results, top_tokens_list):
         layer_embeddings.append(layer_embedding)
 
     # Plot current progress
-    path = plot_layers(layer_embeddings, "probe_results", image_output_folder, top_tokens_list)
+    path = plot_layers(layer_embeddings, "probe_results", image_output_folder, top_tokens_list, probe_string_list)
     return path
 
 
