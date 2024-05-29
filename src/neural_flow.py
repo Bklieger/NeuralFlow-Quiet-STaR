@@ -44,7 +44,7 @@ def main():
         model_folder, trust_remote_code=True)
 
     # The last token of this string will be used to generate the image
-    probe_string = "1 + 1 ="
+    probe_string = "1 + 1 = 2 because"
 
     # Probe results is an array so that you can plot the changes to the
     # output over time. The plot_embedding_flow will generate an animated gif.
@@ -54,14 +54,20 @@ def main():
     generated_tokens = []
     top_tokens_list = []
     
-    for _ in range(3):  # Generate 3 tokens sequentially as an example
+    for _ in range(5):  # Generate 5 tokens sequentially as an example
         probe_result, top_tokens = compute_model_output(mistral, tokenizer, probe_string)
         probe_results.append(probe_result)
         top_tokens_list.append(top_tokens)
         print("Top tokens:", top_tokens)
         next_token = select_top_token(top_tokens)
         generated_tokens.append(next_token)
-        probe_string += " " + next_token
+        
+        # Fix space token
+        if next_token=="":
+            next_token = " "
+            
+        probe_string += next_token
+        print("Current phrase: ",probe_string)
 
     print("Generated tokens:", generated_tokens)
     
