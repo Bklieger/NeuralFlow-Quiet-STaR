@@ -44,6 +44,18 @@ There are two file paths you will want to change before running the script:
 model_folder = "/models/OpenHermes-2.5-Mistral-7B"
 image_output_folder = "/home/username/Desktop/"
 ```
+# Updates
+Top tokens are printed after each generation:
+
+probe_string = "1 + 1="
+
+First token generation: [('', 0.0003376007080078125), ('<|startthought|>', 0.00022661685943603516), ('\n', 0.00021028518676757812), ('?', 0.0001747608184814453), ('a', 0.00015783309936523438)]
+
+Second token generation: [('2', 0.0006198883056640625), ('3', 0.0005059242248535156), ('1', 0.0004715919494628906), ('4', 0.00037670135498046875), ('0', 0.0003402233123779297)]
+
+Third token generation: [('\n', 0.0003523826599121094), ('.', 0.0002887248992919922), (',', 0.0002868175506591797), ('<|startthought|>', 0.000263214111328125), ('', 0.0002465248107910156)]
+
+Generated tokens: ['', '2', '\n']
 
 # To-do
 
