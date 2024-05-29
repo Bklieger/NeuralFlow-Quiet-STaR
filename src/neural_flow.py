@@ -28,8 +28,8 @@ from PIL import Image
 from transformers import MistralForCausalLM, AutoTokenizer, AutoConfig
 
 device_0 = "cuda:0"
-model_folder = "/models/OpenHermes-2.5-Mistral-7B"
-image_output_folder = "/home/lukas/Desktop/"
+model_folder = "/notebooks/quietstar-8-ahead"
+image_output_folder = "/notebooks/"
 
 
 def main():
@@ -45,15 +45,19 @@ def main():
         model_folder, trust_remote_code=True)
 
     # The last token of this string will be used to generate the image
-    probe_string = "Put a sample string here"
+    probe_string = "1 + 1 = "
 
     # Probe results is an array so that you can plot the changes to the
     # output over time. The plot_embedding_flow will generate an animated gif.
     # Call compute_model_output multiple times and append the results to
     # probe_results.
     probe_results = []
-    probe_result = compute_model_output(mistral, tokenizer, probe_string)
+    generated_tokens = []
+    probe_result, generated_token = compute_model_output(mistral, tokenizer, probe_string)
     probe_results.append(probe_result)
+    generated_tokens.append(generated_token)
+    
+    print("Generated tokens: ",generated_tokens)
 
     plot_embedding_flow(probe_results)
 
@@ -85,7 +89,12 @@ def compute_model_output(base_model, tokenizer, ground_truth):
                            output_attentions=True)
             hidden_states = output[0]
             layer_output.append(hidden_states)
-        return layer_output
+                                
+        logits = base_model.lm_head(hidden_states)
+        predicted_tokens = torch.argmax(logits, dim=-1)
+        generated_tokens = tokenizer.batch_decode(predicted_tokens[0], skip_special_tokens=True)
+        
+        return layer_output, generated_tokens
 
 
 def vectorized_get_color_rgb(value_tensor, max_value=1.0):
