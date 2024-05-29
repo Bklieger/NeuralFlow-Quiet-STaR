@@ -45,4 +45,8 @@ model_folder = "/models/OpenHermes-2.5-Mistral-7B"
 image_output_folder = "/home/username/Desktop/"
 ```
 
+# To-do
+
+Add token output as overlay under each image frame
+
 This is self explanitory, but set the model folder to the location of your Mistral 7B, and the image output folder to the path you'd like to save your image.
