@@ -1,5 +1,5 @@
 # New Interface
-
+This project adds a new interface to the original NeuralFlow while storing tokens generated and the top token probabilities. It also provides instructions to use with Quiet-STaR. The original repository can be found [here](https://github.com/valine/NeuralFlow).
 ![probe_results_layers_20240529_164150](https://github.com/Bklieger/NeuralFlow-Quiet-STaR/assets/62450410/51813d6a-c19f-4e4d-8aad-7e0222d7c227)
 
 
