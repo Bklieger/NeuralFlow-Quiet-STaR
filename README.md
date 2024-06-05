@@ -1,6 +1,8 @@
 # New Interface
 
 ![probe_results_layers_20240529_164150](https://github.com/Bklieger/NeuralFlow-Quiet-STaR/assets/62450410/51813d6a-c19f-4e4d-8aad-7e0222d7c227)
+
+
 New interface showing tokens generated with corresponding probabilities for top five tokens at each inference step. As an experiment, start thought tokens are not masked and appear in the generated tokens.
 
 # Original: Neural Flow
